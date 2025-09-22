@@ -2,7 +2,6 @@
 
 import { ArrowRight, Star } from "@phosphor-icons/react";
 import React, { useEffect, useState } from "react";
-import { SparklesCore } from "../components/ui/sparkles";
 import StarField from "../components/ui/StarField";
 
 interface HeroSectionProps {
@@ -165,6 +164,19 @@ const HeroSection = ({ children }: HeroSectionProps) => {
           {/* Additional radial gradient to enhance the effect */}
         </div>
       </div>
+
+      {/* Simple Scroll Down Indicator */}
+      <div className='absolute bottom-8 flex flex-col items-center left-1/2 transform -translate-x-1/2 z-30'>
+        <span className='text-white/50 text-sm mb-2'>Scroll Down</span>
+        <div className='w-6 h-10 border-2 border-white/30 rounded-full flex justify-center'>
+          <div
+            className='w-1 h-3 bg-white/50 rounded-full mt-2 animate-bounce'
+            style={{ animationDuration: "2s" }}></div>
+        </div>
+      </div>
+
+      {/* Bottom gradient transition to next section */}
+      <div className='absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-[#041322] z-20' />
     </div>
   );
 };
