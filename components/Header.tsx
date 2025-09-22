@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { Phone, User } from "@phosphor-icons/react";
 import { useState } from "react";
 
 const Header = () => {
@@ -16,22 +17,22 @@ const Header = () => {
   };
 
   return (
-    <header className='absolute top-0 left-0 right-0 z-20 bg-transparent py-3'>
+    <header className='absolute top-0 left-0 right-0 z-20 bg-transparent py-4'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex items-center justify-between h-16'>
+        <div className='flex items-center h-16 relative'>
           {/* Logo - Left */}
           <div className='flex-shrink-0'>
             <img src='/logoFikrTech.png' alt='Logo' width={100} height={100} />
           </div>
 
-          {/* Desktop Navigation - Center */}
-          <nav className='hidden md:flex space-x-8'>
+          {/* Desktop Navigation - Centered */}
+          <nav className='hidden md:flex space-x-8 absolute left-1/2 transform -translate-x-1/2'>
             {/* Tutoring with Dropdown */}
             <div
               className='relative'
               onMouseEnter={() => setIsTutoringDropdownOpen(true)}
               onMouseLeave={() => setIsTutoringDropdownOpen(false)}>
-              <button className='flex items-center text-white hover:text-[#97beda] px-3 py-2 text-sm font-medium transition-colors duration-200'>
+              <button className='flex items-center text-white hover:text-[#97beda] px-3 py-2 text-md font-medium transition-colors duration-200'>
                 Tutoring
                 <svg
                   className={`ml-1 h-4 w-4 transition-transform duration-200 ${
@@ -94,24 +95,28 @@ const Header = () => {
 
             <a
               href='#'
-              className='text-white hover:text-[#97beda] px-3 py-2 text-sm font-medium transition-colors duration-200'>
+              className='text-white hover:text-[#97beda] px-3 py-2 text-md font-medium transition-colors duration-200'>
               Teaching
             </a>
             <a
               href='#'
-              className='text-white hover:text-[#97beda] px-3 py-2 text-sm font-medium transition-colors duration-200'>
+              className='text-white hover:text-[#97beda] px-3 py-2 text-md font-medium transition-colors duration-200'>
               Courses
             </a>
             <a
               href='#'
-              className='text-white hover:text-[#97beda] px-3 py-2 text-sm font-medium transition-colors duration-200'>
+              className='text-white hover:text-[#97beda] px-3 py-2 text-md font-medium transition-colors duration-200'>
               Coaching
             </a>
           </nav>
 
           {/* Contact Us Button - Right */}
-          <div className='hidden md:block'>
-            <button className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors duration-200 shadow-sm'>
+          <div className='hidden md:flex items-center ml-auto'>
+            <a className='text-white inline-block mr-4 cursor-pointer hover:text-[#97beda] transition-colors duration-200'>
+              Login
+            </a>
+            <button className='bg-white/10 group backdrop-blur-sm border border-white/20 px-4 py-2  text-white rounded-lg hover:bg-white/20 transition-all duration-300 font-medium shadow-lg'>
+              <Phone size={20} className='text-white inline mr-4' />
               Contact Us
             </button>
           </div>
@@ -209,7 +214,7 @@ const Header = () => {
 
             <a
               href='#'
-              className='block text-gray-700 hover:text-[#97beda] hover:bg-blue-50 px-3 py-2 text-base font-medium rounded-md transition-colors duration-200'>
+              className='block text-gray-700 hover:text-[#97beda] hover:bg-blue-50 px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200'>
               Teaching
             </a>
             <a
