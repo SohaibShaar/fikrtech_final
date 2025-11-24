@@ -3,6 +3,7 @@
 import { ArrowRight, Star } from "@phosphor-icons/react";
 import React, { useEffect, useState } from "react";
 import StarField from "../components/ui/StarField";
+import { SparklesCore } from "./ui/sparkles";
 
 interface HeroSectionProps {
   children?: React.ReactNode;
@@ -21,10 +22,10 @@ const HeroSection = ({ children }: HeroSectionProps) => {
   }, []);
 
   return (
-    <div className='relative min-h-screen overflow-hidden bg-gradient-to-r from-[#041932] to-[#041322]'>
+    <div className='relative min-h-screen grid grid-cols-2 md:grid-cols-2 overflow-hidden bg-gradient-to-r from-[#041932] to-[#041322]'>
       {/* Custom SVG Background with fade-in animation */}
       <div
-        className={`absolute inset-0 transition-opacity duration-2000 ease-out ${
+        className={`absolute inset-0  transition-opacity duration-2000 ease-out ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}>
         <svg
@@ -106,7 +107,7 @@ const HeroSection = ({ children }: HeroSectionProps) => {
         </div>
       </div> */}
       {/* Sparkles */}
-      <div className='min-h-screen w-full bg-transparent flex flex-col items-center justify-center overflow-hidden rounded-md'>
+      <div className='min-h-screen w-full bg-transparent flex flex-col items-center justify-center text-left overflow-hidden rounded-md'>
         <h1 className='md:text-7xl text-3xl lg:text-9xl font-bold text-center text-white relative z-0'>
           FikrTech
         </h1>
@@ -150,8 +151,7 @@ const HeroSection = ({ children }: HeroSectionProps) => {
               mask: `radial-gradient(ellipse 60% 100% at 50% 0%, white 0%, white 30%, rgba(255,255,255,0.3) 60%, rgba(255,255,255,0.1) 85%, transparent 100%)`,
               WebkitMask: `radial-gradient(ellipse 60% 100% at 50% 0%, white 0%, white 30%, rgba(255,255,255,0.3) 60%, rgba(255,255,255,0.1) 85%, transparent 100%)`,
             }}>
-            {/*
-            <SparklesCore
+            {/*<SparklesCore
               background='transparent'
               minSize={0.4}
               maxSize={1}
@@ -163,6 +163,10 @@ const HeroSection = ({ children }: HeroSectionProps) => {
 
           {/* Additional radial gradient to enhance the effect */}
         </div>
+      </div>
+
+      <div className='flex flex-col items-center justify-center'>
+        <img src='/robot.png' alt='FikrTech' className='w-1/2' />
       </div>
 
       {/* Simple Scroll Down Indicator */}

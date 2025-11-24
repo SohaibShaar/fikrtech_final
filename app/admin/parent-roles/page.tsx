@@ -17,8 +17,6 @@ import StarField from "../../../components/ui/StarField";
 import Loader from "../../../components/ui/Loader";
 import { tokenUtils, adminAPI } from "../../../lib/api";
 
-
-
 interface ParentRolesResponse {
   success: boolean;
   message: string;
@@ -107,7 +105,6 @@ export default function ParentRolesPage() {
     tokenUtils.removeToken();
     window.location.href = "/login";
   };
-
 
   return (
     <div

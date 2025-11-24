@@ -11,9 +11,14 @@ import {
   InstagramLogo,
 } from "@phosphor-icons/react";
 
-const Footer = () => {
+const Footer = ({ pricingPage = false }) => {
   return (
-    <footer className='bg-gradient-to-b from-[#1A2332]  to-[#041322] text-white'>
+    <footer
+      className={`text-white ${
+        pricingPage
+          ? "bg-gradient-to-r from-[#051A33]  to-[#041323]"
+          : "bg-gradient-to-b from-[#1A2332]  to-[#041322]"
+      }`}>
       {/* Main Footer Content */}
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'>

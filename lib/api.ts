@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // API endpoints
 export const API_ENDPOINTS = {
@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     LOGIN: "/api/auth/login",
     LOGOUT: "/api/auth/logout",
     REFRESH: "/api/auth/refresh",
+    TUTORING_CATEGORIES: "/api/auth/tutoring-categories",
   },
   // Student endpoints
   STUDENT: {
@@ -16,12 +17,24 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: "/api/student/profile",
     UPLOAD_DOCUMENT: "/api/student/documents",
     ORDERS: "/api/student/orders",
+    REGISTER: "/api/student/register",
+    LOGIN: "/api/student/login",
+    FORM_PROGRESS: "/api/student/form/progress",
+    FORM_STATUS: "/api/student/form/status",
+    FORM_STEP: "/api/student/form/step",
+    MATERIALS: "/api/student/materials",
   },
   // Teacher endpoints
   TEACHER: {
     PROFILE: "/api/teacher/profile",
     UPDATE_PROFILE: "/api/teacher/profile",
     ORDERS: "/api/teacher/orders",
+    REGISTRATION_STEP: "/api/teacher/registration/step",
+    REGISTRATION_SUBMIT: "/api/teacher/registration/submit",
+    REGISTRATION_PROGRESS: "/api/teacher/registration/progress",
+    DYNAMIC_OPTIONS: "/api/teacher/dynamic-options",
+    DEEP_OPTIONS: "/api/teacher/deep-options",
+    UPLOAD: "/api/teacher/upload",
   },
   // Admin endpoints
   ADMIN: {
@@ -32,6 +45,10 @@ export const API_ENDPOINTS = {
     TEACHER_APPLICATIONS: "/api/admin/teacher-applications",
     PARENT_ROLES: "/api/admin/parent-roles",
     PARENTS: "/api/parents",
+    COURSES: "/api/admin/courses",
+    COURSE_BY_ID: "/api/admin/courses",
+    APPROVE_COURSE: "/api/admin/courses",
+    REJECT_COURSE: "/api/admin/courses",
   },
   // Parents endpoints
   PARENTS: {
@@ -55,6 +72,19 @@ export const API_ENDPOINTS = {
   FORM_COMPLETION: {
     STATUS: "/api/form-completion/status",
   },
+  // Pricing endpoints
+  PRICING: {
+    LIST: "/api/pricing",
+  },
+  // Course endpoints
+  COURSE: {
+    CREATE: "/api/course/create",
+    TEACHER_COURSES: "/api/course/teacher",
+    PUBLIC_COURSES: "/api/course/public",
+    BY_ID: "/api/course",
+    UPDATE: "/api/course",
+    DELETE: "/api/course",
+  },
 };
 
 // Token management utilities
@@ -73,7 +103,35 @@ export const tokenUtils = {
 
   isTokenValid: (): boolean => {
     const token = localStorage.getItem("authToken");
-    return !!token;
+    if (!token) return false;
+
+    try {
+      // Basic JWT token validation - check if it's a valid JWT format
+      const parts = token.split(".");
+      if (parts.length !== 3) return false;
+
+      // Decode the payload to check expiration
+      const payload = JSON.parse(atob(parts[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      // Check if token is expired
+      if (payload.exp && payload.exp < currentTime) {
+        // Token is expired, remove it
+        localStorage.removeItem("authToken");
+        return false;
+      }
+
+      return true;
+    } catch {
+      // Invalid token format, remove it
+      localStorage.removeItem("authToken");
+      return false;
+    }
+  },
+
+  // Clear all authentication data
+  clearAuth: () => {
+    localStorage.removeItem("authToken");
   },
 };
 
@@ -101,35 +159,86 @@ export const apiCall = async (
 
   try {
     const response = await fetch(url, finalOptions);
-    const data = await response.json();
+
+    // Try to parse JSON response, but handle non-JSON responses gracefully
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      // If response is not JSON, create a simple error object
+      data = {
+        success: false,
+        message: "Invalid response format",
+      };
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      // Handle specific error cases
+      if (response.status === 401) {
+        // Token is invalid or expired
+        tokenUtils.removeToken();
+        throw new Error("Authentication failed. Please login again.");
+      } else if (response.status === 403) {
+        throw new Error("Access denied. Insufficient permissions.");
+      } else if (response.status >= 500) {
+        throw new Error("Server error. Please try again later.");
+      } else {
+        throw new Error(
+          data.message || `HTTP error! status: ${response.status}`
+        );
+      }
     }
 
     return data;
   } catch (error) {
-    console.error("API call failed:", error);
+    // Only log non-network errors to reduce console noise
+    if (!(error instanceof TypeError)) {
+      console.error("API call failed:", error);
+    }
     throw error;
   }
 };
 
-// Helper function for authenticated API calls
+// Helper function for authenticated API calls with retry logic
 export const authenticatedApiCall = async (
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryCount = 0
 ): Promise<unknown> => {
   const token = tokenUtils.getToken();
+
+  if (!token) {
+    throw new Error("No authentication token found. Please login again.");
+  }
 
   const authOptions: RequestInit = {
     ...options,
     headers: {
       ...options.headers,
-      ...(token && { Authorization: `Bearer ${token}` }),
+      Authorization: `Bearer ${token}`,
     },
   };
 
-  return apiCall(endpoint, authOptions);
+  try {
+    return await apiCall(endpoint, authOptions);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    // If it's an authentication error and we haven't retried yet, try to refresh
+    if (
+      (errorMessage.includes("Authentication failed") ||
+        errorMessage.includes("Invalid or expired token") ||
+        errorMessage.includes("401")) &&
+      retryCount === 0
+    ) {
+      console.log("Authentication failed, clearing token and retrying...");
+      tokenUtils.clearAuth();
+      throw new Error("Authentication failed. Please login again.");
+    }
+
+    throw error;
+  }
 };
 
 // Auth-specific API calls
@@ -158,6 +267,21 @@ export const authAPI = {
     return apiCall(API_ENDPOINTS.AUTH.LOGOUT, {
       method: "POST",
     });
+  },
+
+  getTutoringCategories: async () => {
+    return apiCall(API_ENDPOINTS.AUTH.TUTORING_CATEGORIES, {
+      method: "GET",
+    });
+  },
+
+  getTutoringSubcategories: async (parentId: string) => {
+    return apiCall(
+      `${API_ENDPOINTS.AUTH.TUTORING_CATEGORIES}/${parentId}/subcategories`,
+      {
+        method: "GET",
+      }
+    );
   },
 };
 
@@ -321,6 +445,23 @@ export const adminAPI = {
       method: "DELETE",
     });
   },
+
+  // Review teacher application
+  reviewTeacherApplication: async (
+    applicationId: string,
+    reviewData: {
+      status: "APPROVED" | "REJECTED";
+      reviewNotes?: string;
+    }
+  ) => {
+    return authenticatedApiCall(
+      `${API_ENDPOINTS.ADMIN.TEACHER_APPLICATIONS}/${applicationId}/review`,
+      {
+        method: "PUT",
+        body: JSON.stringify(reviewData),
+      }
+    );
+  },
 };
 
 // Children Management API
@@ -389,4 +530,81 @@ export const childrenAPI = {
   },
 };
 
+// Student Form API
+export const studentFormAPI = {
+  // Get form progress
+  getFormProgress: async () => {
+    return authenticatedApiCall(API_ENDPOINTS.STUDENT.FORM_PROGRESS, {
+      method: "GET",
+    });
+  },
+
+  // Get form status
+  getFormStatus: async () => {
+    return authenticatedApiCall(API_ENDPOINTS.STUDENT.FORM_STATUS, {
+      method: "GET",
+    });
+  },
+
+  // Save form step
+  saveFormStep: async (
+    stepNumber: number,
+    stepData: Record<string, string | string[]>
+  ) => {
+    return authenticatedApiCall(
+      `${API_ENDPOINTS.STUDENT.FORM_STEP}/${stepNumber}`,
+      {
+        method: "POST",
+        body: JSON.stringify(stepData),
+      }
+    );
+  },
+
+  // Get dynamic materials
+  getMaterials: async () => {
+    return apiCall(API_ENDPOINTS.STUDENT.MATERIALS, {
+      method: "GET",
+    });
+  },
+
+  // Student login
+  login: async (credentials: { email: string; password: string }) => {
+    return apiCall(API_ENDPOINTS.STUDENT.LOGIN, {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+  },
+
+  // Student registration
+  register: async (userData: {
+    fullName: string;
+    gender: string;
+    nationality: string;
+    dateOfBirth: string;
+    email: string;
+    phone: string;
+    password: string;
+  }) => {
+    return apiCall(API_ENDPOINTS.STUDENT.REGISTER, {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // Create student profile
+  createProfile: async () => {
+    return authenticatedApiCall("/api/student/create-profile", {
+      method: "POST",
+    });
+  },
+};
+
+// Pricing API
+export const pricingAPI = {
+  getPlans: async () => {
+    return apiCall(API_ENDPOINTS.PRICING.LIST, {
+      method: "GET",
+    });
+  },
+};
 export default API_BASE_URL;

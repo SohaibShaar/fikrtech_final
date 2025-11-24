@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import StarField from "../../components/ui/StarField";
 import { tokenUtils } from "@/lib/api";
+import MultiStepStudentForm from "@/components/MultiStepStudentForm";
 
 export default function StudentFormPage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [formCompleted, setFormCompleted] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -19,6 +21,14 @@ export default function StudentFormPage() {
   const handleLogout = () => {
     tokenUtils.removeToken();
     window.location.href = "/login";
+  };
+
+  const handleFormComplete = () => {
+    setFormCompleted(true);
+    // Optionally redirect to dashboard or another page
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 3000);
   };
 
   return (
@@ -101,27 +111,38 @@ export default function StudentFormPage() {
 
       {/* Main Content */}
       <div className='relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20'>
-        <div className='text-center max-w-2xl'>
-          <h1 className='text-4xl md:text-5xl font-bold text-white mb-6'>
-            Complete Your Student Profile
-          </h1>
-          <span></span>
-          <p className='text-[#97beda] text-lg mb-8'>
-            Please complete your student information form to access all features
-            of the platform.
-          </p>
-
-          {/* Placeholder content - form will be implemented here */}
-          <div className='bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-8'>
-            <div className='text-white text-center'>
-              <p className='text-xl mb-4'>🚧 Student Form Coming Soon</p>
-              <p className='text-gray-300'>
-                This is where the student information form will be displayed.
-                The form completion system is currently under development.
+        {!formCompleted ? (
+          <div className='w-full max-w-4xl'>
+            <div className='text-center mb-8'>
+              <h1 className='text-4xl md:text-5xl font-bold text-white mb-6'>
+                Complete Your Student Profile
+              </h1>
+              <p className='text-[#97beda] text-lg mb-8'>
+                Please complete your student information form to access all
+                features of the platform.
               </p>
             </div>
+
+            {/* Multi-Step Form */}
+            <MultiStepStudentForm onComplete={handleFormComplete} />
           </div>
-        </div>
+        ) : (
+          <div className='text-center max-w-2xl'>
+            <div className='bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-8'>
+              <div className='text-white text-center'>
+                <div className='text-6xl mb-4'>🎉</div>
+                <h2 className='text-3xl font-bold mb-4'>Form Completed!</h2>
+                <p className='text-[#97beda] text-lg mb-6'>
+                  Thank you for completing your student profile. You now have
+                  access to all platform features.
+                </p>
+                <p className='text-gray-300'>
+                  Redirecting you to the main page in a few seconds...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom gradient transition */}

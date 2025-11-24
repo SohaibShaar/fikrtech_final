@@ -59,7 +59,7 @@ const AboutSection = ({ children }: AboutSectionProps) => {
           <h2 className='text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6'>
             About{" "}
             <span className='bg-gradient-to-r from-[#36FFFF] to-[#1D9AF8] bg-clip-text text-transparent'>
-              Fikrtech
+              FikrTech
             </span>
           </h2>
           <p className='text-gray-300 text-lg md:text-xl lg:text-2xl max-w-3xl mx-auto leading-relaxed'>

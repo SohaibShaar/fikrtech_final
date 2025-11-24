@@ -75,8 +75,34 @@ function ApplicationDetailsModal({
   application,
   isOpen,
   onClose,
-}: ApplicationDetailsModalProps) {
+  onApprove,
+  onReject,
+}: ApplicationDetailsModalProps & {
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
+  const [rejectionNotes, setRejectionNotes] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
+
   if (!isOpen || !application) return null;
+
+  const handleApprove = () => {
+    if (confirm("Are you sure you want to approve this application?")) {
+      onApprove(application.id);
+      onClose();
+    }
+  };
+
+  const handleReject = () => {
+    if (showRejectForm) {
+      onReject(application.id);
+      onClose();
+      setShowRejectForm(false);
+      setRejectionNotes("");
+    } else {
+      setShowRejectForm(true);
+    }
+  };
 
   return (
     <div className='fixed inset-0 z-60 flex items-center justify-center'>
@@ -240,18 +266,102 @@ function ApplicationDetailsModal({
                 <span>Selected Options</span>
               </h4>
               <div className='flex flex-wrap gap-2'>
-                {application.applicationData.selectedOptions.map(
-                  (option, index) => (
-                    <span
-                      key={index}
-                      className='px-3 py-1 bg-white/10 text-gray-300 text-sm rounded-full'>
-                      {option}
+                {application.applicationData.selectedOptions &&
+                  application.applicationData.selectedOptions.map(
+                    (option, index) => (
+                      <span
+                        key={index}
+                        className='px-3 py-1 bg-white/10 text-gray-300 text-sm rounded-full'>
+                        {option}
+                      </span>
+                    )
+                  )}
+                {application.applicationData.selectedSubOptions &&
+                  application.applicationData.selectedSubOptions.map(
+                    (optionId, index) => (
+                      <span
+                        key={index}
+                        className='px-3 py-1 bg-white/10 text-gray-300 text-sm rounded-full'>
+                        Option {index + 1}
+                      </span>
+                    )
+                  )}
+                {!application.applicationData.selectedOptions &&
+                  !application.applicationData.selectedSubOptions && (
+                    <span className='text-gray-400 text-sm'>
+                      No options selected
                     </span>
-                  )
-                )}
+                  )}
               </div>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          {application.status === "PENDING" && (
+            <div className='p-6 border-t border-white/10'>
+              {showRejectForm ? (
+                <div className='space-y-4'>
+                  <div>
+                    <label className='block text-white mb-2'>
+                      Rejection Notes (Optional)
+                    </label>
+                    <textarea
+                      value={rejectionNotes}
+                      onChange={(e) => setRejectionNotes(e.target.value)}
+                      className='w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white'
+                      rows={3}
+                      placeholder='Provide feedback to the teacher...'
+                    />
+                  </div>
+                  <div className='flex space-x-3'>
+                    <button
+                      onClick={() => setShowRejectForm(false)}
+                      className='flex-1 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all'>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleReject}
+                      className='flex-1 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 border border-red-500/30 transition-all'>
+                      Confirm Rejection
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className='flex space-x-3'>
+                  <button
+                    onClick={handleApprove}
+                    className='flex-1 px-6 py-3 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 border border-green-500/30 transition-all font-semibold'>
+                    ✓ Approve Application
+                  </button>
+                  <button
+                    onClick={() => setShowRejectForm(true)}
+                    className='flex-1 px-6 py-3 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 border border-red-500/30 transition-all font-semibold'>
+                    ✗ Reject Application
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {application.status !== "PENDING" && (
+            <div className='p-6 border-t border-white/10'>
+              <div
+                className={`p-4 rounded-lg ${
+                  application.status === "APPROVED"
+                    ? "bg-green-500/20 border border-green-500/30"
+                    : "bg-red-500/20 border border-red-500/30"
+                }`}>
+                <p
+                  className={`text-center font-semibold ${
+                    application.status === "APPROVED"
+                      ? "text-green-400"
+                      : "text-red-400"
+                  }`}>
+                  This application has been {application.status.toLowerCase()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -277,6 +387,7 @@ export default function TeacherApplicationsModal({
   const [selectedApplication, setSelectedApplication] =
     useState<TeacherApplication | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchApplications = async (page: number = 1, status?: string) => {
     try {
@@ -320,6 +431,49 @@ export default function TeacherApplicationsModal({
       fetchApplications(1, statusFilter);
     }
   }, [isOpen, statusFilter]);
+
+  const handleApproveApplication = async (applicationId: string) => {
+    try {
+      setActionLoading(true);
+      const response = await adminAPI.reviewTeacherApplication(applicationId, {
+        status: "APPROVED",
+      });
+
+      if (response.success) {
+        alert("Application approved successfully!");
+        fetchApplications(currentPage, statusFilter);
+      } else {
+        alert("Failed to approve application");
+      }
+    } catch (error) {
+      console.error("Error approving application:", error);
+      alert("Error approving application");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectApplication = async (applicationId: string, notes?: string) => {
+    try {
+      setActionLoading(true);
+      const response = await adminAPI.reviewTeacherApplication(applicationId, {
+        status: "REJECTED",
+        reviewNotes: notes || "",
+      });
+
+      if (response.success) {
+        alert("Application rejected");
+        fetchApplications(currentPage, statusFilter);
+      } else {
+        alert("Failed to reject application");
+      }
+    } catch (error) {
+      console.error("Error rejecting application:", error);
+      alert("Error rejecting application");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleStatusFilter = (status: string) => {
     setStatusFilter(status);
@@ -573,24 +727,26 @@ export default function TeacherApplicationsModal({
                             Selected Options
                           </p>
                           <div className='flex flex-wrap gap-1'>
-                            {application.applicationData.selectedOptions
-                              .slice(0, 3)
-                              .map((option, index) => (
-                                <span
-                                  key={index}
+                            {application.applicationData.selectedOptions &&
+                              application.applicationData.selectedOptions
+                                .slice(0, 3)
+                                .map((option, index) => (
+                                  <span
+                                    key={index}
                                   className='px-2 py-1 bg-white/10 text-gray-300 text-xs rounded'>
                                   {option}
                                 </span>
                               ))}
-                            {application.applicationData.selectedOptions
-                              .length > 3 && (
-                              <span className='px-2 py-1 bg-white/10 text-gray-300 text-xs rounded'>
-                                +
-                                {application.applicationData.selectedOptions
-                                  .length - 3}{" "}
-                                more
-                              </span>
-                            )}
+                            {application.applicationData.selectedOptions &&
+                              application.applicationData.selectedOptions
+                                .length > 3 && (
+                                <span className='px-2 py-1 bg-white/10 text-gray-300 text-xs rounded'>
+                                  +
+                                  {application.applicationData.selectedOptions
+                                    .length - 3}{" "}
+                                  more
+                                </span>
+                              )}
                           </div>
                         </div>
 
@@ -678,6 +834,8 @@ export default function TeacherApplicationsModal({
           setShowDetailsModal(false);
           setSelectedApplication(null);
         }}
+        onApprove={handleApproveApplication}
+        onReject={handleRejectApplication}
       />
     </div>
   );

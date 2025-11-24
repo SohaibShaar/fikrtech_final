@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -70,7 +70,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  useState(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
@@ -164,8 +164,8 @@ export default function RegisterPage() {
       setIsCheckingForm(true);
       await checkFormCompletionStatus();
     } else if (user.role === "TEACHER") {
-      // إعادة توجيه المعلمين للصفحة الرئيسية
-      router.push("/");
+      // إعادة توجيه المعلمين لصفحة التسجيل
+      router.push("/teacher-registration");
     } else {
       // إعادة توجيه افتراضي للصفحة الرئيسية
       router.push("/");
@@ -556,7 +556,7 @@ export default function RegisterPage() {
               <p className='text-gray-300'>
                 Already have an account?{" "}
                 <Link
-                  href='/'
+                  href='/login'
                   className='text-[#97beda] hover:text-white cursor-pointer transition-colors duration-200 font-medium inline-block'>
                   Login
                 </Link>
