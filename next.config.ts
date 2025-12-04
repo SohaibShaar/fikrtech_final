@@ -1,19 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // إعدادات للتعامل مع API
-  async rewrites() {
-    // في الإنتاج، استخدم متغير البيئة
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${apiUrl}/:path*`,
-      },
-    ];
-  },
-
   // تحسينات للإنتاج
   reactStrictMode: true,
 
@@ -29,6 +16,13 @@ const nextConfig: NextConfig = {
 
   // تفعيل الضغط
   compress: true,
+
+  // إعدادات إضافية
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 export default nextConfig;

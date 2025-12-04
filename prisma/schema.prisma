@@ -1,0 +1,501 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum TeacherRole {
+  TUTORING
+  TEACHING
+  COURSING
+  COACHING
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EducationLevel {
+  BACHELOR
+  MASTER
+  MBA
+  PHD
+  OTHER
+}
+
+enum TutoringTime {
+  WEEKDAYS
+  WEEKENDS
+  FLEXIBLE
+}
+
+enum TutoringMethod {
+  ONLINE
+  PHYSICAL
+}
+
+enum Location {
+  UAE
+  LEBANON
+  OTHER
+}
+
+enum StudentType {
+  PARENT
+  STUDENT
+}
+
+enum InclusiveLearning {
+  ADHD
+  DYSLEXIA
+  DYSCALCULIA
+  DYSGRAPHIA
+  NONE
+}
+
+enum Curriculum {
+  IB_SYSTEM
+  AMERICAN_SYSTEM
+  BRITISH_SYSTEM
+  FRENCH_SYSTEM
+  NATIONAL_SYSTEM
+  OTHER
+}
+
+enum Grade {
+  GRADE1
+  GRADE2
+  GRADE3
+  GRADE4
+  GRADE5
+  GRADE6
+  GRADE7
+  GRADE8
+  GRADE9
+  GRADE10
+  GRADE11
+  GRADE12
+}
+
+enum PreferredTime {
+  WEEKEND
+  WEEKDAYS
+}
+
+enum PreferredTutor {
+  MALE_TUTOR
+  FEMALE_TUTOR
+  BOTH
+}
+
+enum SessionType {
+  ONLINE_SESSIONS
+  OFFLINE_SESSIONS
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum OrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CourseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(STUDENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Student specific fields
+  student Student?
+
+  // Teacher specific fields  
+  teacher Teacher?
+
+  @@map("users")
+}
+
+model Student {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  fullName    String
+  gender      Gender
+  nationality String
+  dateOfBirth DateTime
+  age         Int
+  phone       String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Form completion tracking
+  formResponses   StudentFormResponse?
+  isFormCompleted Boolean              @default(false)
+
+  // Orders
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("students")
+}
+
+model StudentFormResponse {
+  id        String @id @default(uuid())
+  studentId String @unique
+
+  // Step 1: Student Type
+  studentType StudentType?
+
+  // Step 2: Inclusive Learning
+  inclusiveLearning InclusiveLearning?
+
+  // Step 3: Gender (already in Student model, but can be updated here)
+  formGender Gender?
+
+  // Step 4: Curriculum
+  curriculum Curriculum?
+
+  // Step 5: Grade
+  grade Grade?
+
+  // Step 6: Selected Categories (parent categories) - stored as JSON array
+  selectedCategories String? // JSON array of selected parent category IDs
+
+  // Step 7: Selected Subcategories - stored as JSON array of subcategory IDs
+  selectedSubcategories String? // JSON array of subcategory IDs
+
+  // Step 8: Preferred Time
+  preferredTime PreferredTime?
+
+  // Step 9: Preferred Tutor
+  preferredTutor PreferredTutor?
+
+  // Step 10: Session Type
+  sessionType SessionType?
+
+  // Completion tracking
+  currentStep Int       @default(1)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("student_form_responses")
+}
+
+model Teacher {
+  id                      String          @id @default(uuid())
+  userId                  String          @unique
+  applicationId           String?         @unique
+  fullName                String
+  gender                  Gender
+  nationality             String
+  dateOfBirth             DateTime
+  age                     Int
+  phone                   String
+  profilePhoto            String?
+  universityAffiliation   String?
+  highestEducation        EducationLevel?
+  yearsExperience         Int?
+  languagesSpoken         String? // JSON array as string
+  shortBio                String?         @db.Text
+  shortVideo              String?
+  preferredTutoringTime   TutoringTime?
+  preferredTutoringMethod TutoringMethod?
+  location                Location?
+  proposedHourlyRate      Float?
+  cvFile                  String?
+  certificates            String? // JSON array of file paths
+  agreedToTerms           Boolean         @default(false)
+  isApproved              Boolean         @default(false)
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacherApplication TeacherApplication? @relation(fields: [applicationId], references: [id])
+
+  // Many-to-many relationships for selected roles and options
+  selectedRoles       TeacherRoleSelection[]
+  selectedSubOptions  TeacherSubOptionSelection[]
+  selectedDeepOptions TeacherDeepOptionSelection[]
+
+  // Orders
+  orders Order[]
+
+  // Courses
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("teachers")
+}
+
+model TeacherApplication {
+  id          String            @id @default(uuid())
+  teacherId   String?           @unique
+  status      ApplicationStatus @default(PENDING)
+  submittedAt DateTime          @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String? // Admin user ID
+  reviewNotes String?           @db.Text
+
+  // Store the complete application data as JSON for audit trail
+  applicationData Json
+
+  teacher Teacher?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("teacher_applications")
+}
+
+model TeacherRoleSelection {
+  id        String      @id @default(uuid())
+  teacherId String
+  role      TeacherRole
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, role])
+  @@map("teacher_role_selections")
+}
+
+// Dynamic options for step 3 (sub-options under main roles)
+model DynamicOption {
+  id          String      @id @default(uuid())
+  parentRole  TeacherRole // Which main role this belongs to (REQUIRED)
+  parentId    String? // For nested options (step 4)
+  name        String
+  description String?
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+
+  // Self-referential relationship for nested options
+  parent   DynamicOption?  @relation("OptionHierarchy", fields: [parentId], references: [id])
+  children DynamicOption[] @relation("OptionHierarchy")
+
+  // Selections by teachers
+  teacherSelections     TeacherSubOptionSelection[]
+  teacherDeepSelections TeacherDeepOptionSelection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dynamic_options")
+}
+
+model TeacherSubOptionSelection {
+  id        String @id @default(uuid())
+  teacherId String
+  optionId  String
+
+  teacher Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  option  DynamicOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, optionId])
+  @@map("teacher_sub_option_selections")
+}
+
+model TeacherDeepOptionSelection {
+  id        String @id @default(uuid())
+  teacherId String
+  optionId  String
+
+  teacher Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  option  DynamicOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, optionId])
+  @@map("teacher_deep_option_selections")
+}
+
+model Order {
+  id        String @id @default(uuid())
+  studentId String
+  teacherId String
+
+  // Order details
+  title       String
+  description String?    @db.Text
+  subject     String // Subject/material needed
+  grade       Grade
+  curriculum  Curriculum
+
+  // Session preferences
+  sessionType     SessionType
+  preferredTime   PreferredTime
+  sessionsPerWeek Int           @default(1)
+  sessionDuration Int           @default(60) // in minutes
+  totalSessions   Int? // if specified
+
+  // Location (for offline sessions)
+  location String?
+  address  String? @db.Text
+
+  // Pricing
+  proposedRate Float? // Student's proposed hourly rate
+  agreedRate   Float? // Final agreed rate
+  totalAmount  Float? // Total estimated amount
+
+  // Order status and priority
+  status   OrderStatus   @default(PENDING)
+  priority OrderPriority @default(MEDIUM)
+
+  // Scheduling
+  preferredStartDate DateTime?
+  actualStartDate    DateTime?
+  estimatedEndDate   DateTime?
+  actualEndDate      DateTime?
+
+  // Additional requirements
+  requirements String? @db.Text
+  specialNeeds String? @db.Text // For inclusive learning needs
+
+  // Communication
+  studentNotes String? @db.Text
+  teacherNotes String? @db.Text
+  adminNotes   String? @db.Text
+
+  // Relations
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // Order history and messages
+  orderHistory  OrderHistory[]
+  orderMessages OrderMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model OrderHistory {
+  id      String @id @default(uuid())
+  orderId String
+
+  // Status change tracking
+  previousStatus OrderStatus?
+  newStatus      OrderStatus
+  changedBy      String // User ID who made the change
+  changeReason   String?      @db.Text
+
+  // Additional data
+  metadata Json? // Store any additional change data
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("order_history")
+}
+
+model OrderMessage {
+  id         String   @id @default(uuid())
+  orderId    String
+  senderId   String // User ID of sender
+  senderRole UserRole // Role of sender (STUDENT, TEACHER, ADMIN)
+
+  message String    @db.Text
+  isRead  Boolean   @default(false)
+  readAt  DateTime?
+
+  // File attachments (optional)
+  attachments String? // JSON array of file paths
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("order_messages")
+}
+
+model TutoringPackage {
+  id               Int          @id @default(autoincrement())
+  title            String
+  level            StudentLevel
+  mode             StudyMode
+  paidHours        Int
+  freeSessions     Int
+  totalHours       Int
+  priceAED         Float
+  effectiveRateAED Float
+  shortNote        String?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@map("tutoring_packages")
+}
+
+enum StudentLevel {
+  SCHOOL
+  UNIVERSITY
+}
+
+enum StudyMode {
+  ONLINE
+  OFFLINE
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  teacherId   String
+  title       String
+  description String?      @db.Text
+  subject     String
+  grade       Grade?
+  curriculum  Curriculum?
+  price       Float        @default(0)
+  duration    Int? // Duration in hours
+  maxStudents Int? // Maximum students per course
+  thumbnail   String? // Course thumbnail image
+  status      CourseStatus @default(PENDING)
+  isActive    Boolean      @default(true)
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courses")
+}
