@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { tokenUtils } from "../../../lib/api";
@@ -33,7 +33,7 @@ interface CourseFormData {
   maxStudents: number;
 }
 
-export default function TeacherCoursesPage() {
+function TeacherCoursesContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -483,6 +483,14 @@ export default function TeacherCoursesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TeacherCoursesPage() {
+  return (
+    <Suspense fallback={<Loader message="Loading courses..." />}>
+      <TeacherCoursesContent />
+    </Suspense>
   );
 }
 
